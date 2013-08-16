@@ -495,7 +495,7 @@ gst_validate_pad_monitor_check_late_serialized_events (GstValidatePadMonitor *
     g_ptr_array_remove_range (monitor->serialized_events, 0, i);
 }
 
-void
+static void
 _parent_set_cb (GstObject * object, GstObject * parent,
     GstValidateMonitor * monitor)
 {
