@@ -1565,6 +1565,13 @@ gst_validate_pad_monitor_setcaps_func (GstPad * pad, GstCaps * caps)
   GST_VALIDATE_PAD_MONITOR_PARENT_LOCK (pad_monitor);
   GST_VALIDATE_MONITOR_LOCK (pad_monitor);
 
+  /* Check if caps are identical to last caps and complain if so */
+  if (pad_monitor->last_caps
+      && gst_caps_is_equal (caps, pad_monitor->last_caps)) {
+    GST_VALIDATE_REPORT (pad_monitor, EVENT_CAPS_DUPLICATE, "%" GST_PTR_FORMAT,
+        caps);
+  }
+
   gst_validate_pad_monitor_check_caps_complete (pad_monitor, caps);
 
   if (caps) {
@@ -1629,6 +1636,12 @@ gst_validate_pad_monitor_setcaps_func (GstPad * pad, GstCaps * caps)
   GST_VALIDATE_PAD_MONITOR_PARENT_LOCK (pad_monitor);
   if (!ret)
     gst_validate_pad_monitor_otherpad_clear_pending_fields (pad_monitor);
+  else {
+    if (pad_monitor->last_caps) {
+      gst_caps_unref (pad_monitor->last_caps);
+    }
+    pad_monitor->last_caps = gst_caps_ref (caps);
+  }
   GST_VALIDATE_PAD_MONITOR_PARENT_UNLOCK (pad_monitor);
 
   return ret;
@@ -1653,6 +1666,8 @@ gst_validate_pad_monitor_do_setup (GstValidateMonitor * monitor)
   }
 
   g_object_set_data ((GObject *) pad, "qa-monitor", pad_monitor);
+
+  pad_monitor->pad = pad;
 
   pad_monitor->event_func = GST_PAD_EVENTFUNC (pad);
   pad_monitor->query_func = GST_PAD_QUERYFUNC (pad);
