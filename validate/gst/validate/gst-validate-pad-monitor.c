@@ -837,6 +837,8 @@ _combine_flows (GstFlowReturn ret1, GstFlowReturn ret2)
     return ret1;
   if (ret2 <= GST_FLOW_NOT_NEGOTIATED)
     return ret2;
+  if (ret1 == GST_FLOW_WRONG_STATE || ret2 == GST_FLOW_WRONG_STATE)
+    return GST_FLOW_WRONG_STATE;
   if (ret1 == GST_FLOW_OK || ret2 == GST_FLOW_OK)
     return GST_FLOW_OK;
   return ret2;
