@@ -1150,8 +1150,8 @@ gst_validate_pad_monitor_common_event_check (GstValidatePadMonitor *
 }
 
 static gboolean
-gst_validate_pad_monitor_sink_event_check (GstValidatePadMonitor * pad_monitor,
-    GstEvent * event, GstPadEventFunction handler)
+gst_validate_pad_monitor_downstream_event_check (GstValidatePadMonitor *
+    pad_monitor, GstEvent * event, GstPadEventFunction handler)
 {
   gboolean ret = TRUE;
   gboolean update;
@@ -1389,7 +1389,7 @@ gst_validate_pad_monitor_sink_event_func (GstPad * pad, GstEvent * event)
         event, last_ts);
   }
 
-  ret = gst_validate_pad_monitor_sink_event_check (pad_monitor, event,
+  ret = gst_validate_pad_monitor_downstream_event_check (pad_monitor, event,
       pad_monitor->event_func);
 
   GST_VALIDATE_MONITOR_UNLOCK (pad_monitor);
@@ -1532,7 +1532,7 @@ gst_validate_pad_monitor_event_probe (GstPad * pad, GstEvent * event,
 
   /* This so far is just like an event that is flowing downstream,
    * so we do the same checks as a sinkpad event handler */
-  ret = gst_validate_pad_monitor_sink_event_check (monitor, event, NULL);
+  ret = gst_validate_pad_monitor_downstream_event_check (monitor, event, NULL);
   GST_VALIDATE_MONITOR_UNLOCK (monitor);
   GST_VALIDATE_PAD_MONITOR_PARENT_UNLOCK (monitor);
 
