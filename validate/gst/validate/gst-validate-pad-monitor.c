@@ -1092,6 +1092,18 @@ gst_validate_pad_monitor_add_expected_newsegment (GstValidatePadMonitor *
   gst_iterator_free (iter);
 }
 
+static void
+gst_validate_pad_monitor_flush (GstValidatePadMonitor * pad_monitor)
+{
+  pad_monitor->current_timestamp = GST_CLOCK_TIME_NONE;
+  pad_monitor->current_duration = GST_CLOCK_TIME_NONE;
+  pad_monitor->timestamp_range_start = GST_CLOCK_TIME_NONE;
+  pad_monitor->timestamp_range_end = GST_CLOCK_TIME_NONE;
+  pad_monitor->has_segment = FALSE;
+  pad_monitor->is_eos = FALSE;
+  gst_caps_replace (&pad_monitor->last_caps, NULL);
+}
+
 /* common checks for both sink and src event functions */
 static void
 gst_validate_pad_monitor_common_event_check (GstValidatePadMonitor *
@@ -1142,6 +1154,9 @@ gst_validate_pad_monitor_common_event_check (GstValidatePadMonitor *
             GST_EVENT_SRC (event));
       }
       pad_monitor->pending_flush_stop = FALSE;
+
+      /* cleanup our data */
+      gst_validate_pad_monitor_flush (pad_monitor);
     }
       break;
     default:
