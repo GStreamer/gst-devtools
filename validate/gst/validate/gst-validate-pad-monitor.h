@@ -67,6 +67,8 @@ struct _GstValidatePadMonitor {
   GstPadQueryFunction query_func;
   GstPadSetCapsFunction setcaps_func;
   GstPadGetCapsFunction getcaps_func;
+  GstPadActivateModeFunction activatepush_func;
+  GstPadActivateModeFunction activatepull_func;
 
   gulong buffer_probe_id;
   gulong event_probe_id;

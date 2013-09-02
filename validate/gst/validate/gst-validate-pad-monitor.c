@@ -1141,6 +1141,14 @@ gst_validate_pad_monitor_flush (GstValidatePadMonitor * pad_monitor)
   pad_monitor->has_segment = FALSE;
   pad_monitor->is_eos = FALSE;
   gst_caps_replace (&pad_monitor->last_caps, NULL);
+
+  g_list_free_full (pad_monitor->expired_events,
+      (GDestroyNotify) gst_event_unref);
+  pad_monitor->expired_events = NULL;
+
+  if (pad_monitor->serialized_events->len)
+    g_ptr_array_remove_range (pad_monitor->serialized_events, 0,
+        pad_monitor->serialized_events->len);
 }
 
 /* common checks for both sink and src event functions */
@@ -1523,6 +1531,46 @@ gst_validate_pad_buffer_alloc_func (GstPad * pad, guint64 offset, guint size,
 }
 
 static gboolean
+gst_validate_pad_monitor_activatepush_func (GstPad * pad, gboolean active)
+{
+  GstValidatePadMonitor *pad_monitor =
+      g_object_get_data ((GObject *) pad, "qa-monitor");
+  gboolean ret = TRUE;
+
+  /* TODO add overrides for activate func */
+
+  if (pad_monitor->activatepush_func)
+    ret = pad_monitor->activatepush_func (pad, active);
+  if (ret && active == FALSE) {
+    GST_VALIDATE_MONITOR_LOCK (pad_monitor);
+    gst_validate_pad_monitor_flush (pad_monitor);
+    GST_VALIDATE_MONITOR_UNLOCK (pad_monitor);
+  }
+
+  return ret;
+}
+
+static gboolean
+gst_validate_pad_monitor_activatepull_func (GstPad * pad, gboolean active)
+{
+  GstValidatePadMonitor *pad_monitor =
+      g_object_get_data ((GObject *) pad, "qa-monitor");
+  gboolean ret = TRUE;
+
+  /* TODO add overrides for activate func */
+
+  if (pad_monitor->activatepull_func)
+    ret = pad_monitor->activatepull_func (pad, active);
+  if (ret && active == FALSE) {
+    GST_VALIDATE_MONITOR_LOCK (pad_monitor);
+    gst_validate_pad_monitor_flush (pad_monitor);
+    GST_VALIDATE_MONITOR_UNLOCK (pad_monitor);
+  }
+
+  return ret;
+}
+
+static gboolean
 gst_validate_pad_get_range_func (GstPad * pad, guint64 offset, guint size,
     GstBuffer ** buffer)
 {
@@ -1617,7 +1665,7 @@ gst_validate_pad_monitor_event_probe (GstPad * pad, GstEvent * event,
      *        Put those events on the expired_events list
      *     Remove that event and any previous ones from the serialized_events list
      *
-     * FIXME : When do we clear the expired_events list ?
+     * Clear expired events list when flushing or on pad deactivation
      *
      */
 
@@ -1823,6 +1871,8 @@ gst_validate_pad_monitor_do_setup (GstValidateMonitor * monitor)
   pad_monitor->query_func = GST_PAD_QUERYFUNC (pad);
   pad_monitor->setcaps_func = GST_PAD_SETCAPSFUNC (pad);
   pad_monitor->getcaps_func = GST_PAD_GETCAPSFUNC (pad);
+  pad_monitor->activatepush_func = GST_PAD_ACTIVATEPUSHFUNC (pad);
+  pad_monitor->activatepull_func = GST_PAD_ACTIVATEPULLFUNC (pad);
   if (GST_PAD_DIRECTION (pad) == GST_PAD_SINK) {
     pad_monitor->bufferalloc_func = GST_PAD_BUFFERALLOCFUNC (pad);
     if (pad_monitor->bufferalloc_func)
@@ -1850,6 +1900,10 @@ gst_validate_pad_monitor_do_setup (GstValidateMonitor * monitor)
   gst_pad_set_query_function (pad, gst_validate_pad_monitor_query_func);
   gst_pad_set_getcaps_function (pad, gst_validate_pad_monitor_getcaps_func);
   gst_pad_set_setcaps_function (pad, gst_validate_pad_monitor_setcaps_func);
+  gst_pad_set_activatepush_function (pad,
+      gst_validate_pad_monitor_activatepush_func);
+  gst_pad_set_activatepull_function (pad,
+      gst_validate_pad_monitor_activatepull_func);
 
   gst_validate_reporter_set_name (GST_VALIDATE_REPORTER (monitor),
       g_strdup_printf ("%s:%s", GST_DEBUG_PAD_NAME (pad)));
