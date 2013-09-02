@@ -1211,6 +1211,9 @@ gst_validate_pad_monitor_downstream_event_check (GstValidatePadMonitor *
         }
       }
 
+      /* got a segment, no need for EOS now */
+      pad_monitor->pending_eos_seqnum = 0;
+
       if (GST_PAD_DIRECTION (pad) == GST_PAD_SINK) {
         gst_validate_pad_monitor_add_expected_newsegment (pad_monitor, event);
       } else {
@@ -1243,6 +1246,13 @@ gst_validate_pad_monitor_downstream_event_check (GstValidatePadMonitor *
       break;
     case GST_EVENT_EOS:
       pad_monitor->is_eos = TRUE;
+      if (pad_monitor->pending_eos_seqnum &&
+          pad_monitor->pending_eos_seqnum != seqnum) {
+        GST_VALIDATE_REPORT (pad_monitor, EVENT_HAS_WRONG_SEQNUM,
+            "The expected EOS seqnum should be the same as the "
+            "one from the seek that caused it. Got: %u."
+            " Expected: %u", seqnum, pad_monitor->pending_eos_seqnum);
+      }
       /*
        * TODO add end of stream checks for
        *  - events not pushed
@@ -1327,6 +1337,7 @@ gst_validate_pad_monitor_src_event_check (GstValidatePadMonitor * pad_monitor,
         pad_monitor->pending_flush_stop_seqnum = seqnum;
       }
       pad_monitor->pending_newsegment_seqnum = seqnum;
+      pad_monitor->pending_eos_seqnum = seqnum;
     }
       break;
       /* both flushes are handled by the common event handling function */
