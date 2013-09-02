@@ -604,7 +604,7 @@ gst_validate_pad_monitor_new (GstPad * pad, GstValidateRunner * runner,
     GstValidateElementMonitor * parent)
 {
   GstValidatePadMonitor *monitor = g_object_new (GST_TYPE_VALIDATE_PAD_MONITOR,
-      "object", pad, "qa-runner", runner, "qa-parent",
+      "object", pad, "validate-runner", runner, "validate-parent",
       parent, NULL);
 
   if (GST_VALIDATE_PAD_MONITOR_GET_PAD (monitor) == NULL) {
@@ -782,7 +782,8 @@ static void
       case GST_ITERATOR_OK:
         GST_DEBUG_OBJECT (monitor->pad, "Checking pad %s:%s input timestamps",
             GST_DEBUG_PAD_NAME (otherpad));
-        othermonitor = g_object_get_data ((GObject *) otherpad, "qa-monitor");
+        othermonitor =
+            g_object_get_data ((GObject *) otherpad, "validate-monitor");
         GST_VALIDATE_MONITOR_LOCK (othermonitor);
         if (gst_validate_pad_monitor_timestamp_is_in_received_range
             (othermonitor, ts)
@@ -919,7 +920,8 @@ gst_validate_pad_monitor_check_aggregated_return (GstValidatePadMonitor *
       case GST_ITERATOR_OK:
         peerpad = gst_pad_get_peer (otherpad);
         if (peerpad) {
-          othermonitor = g_object_get_data ((GObject *) peerpad, "qa-monitor");
+          othermonitor =
+              g_object_get_data ((GObject *) peerpad, "validate-monitor");
           if (othermonitor) {
             found_a_pad = TRUE;
             GST_VALIDATE_MONITOR_LOCK (othermonitor);
@@ -990,7 +992,8 @@ static void
   while (!done) {
     switch (gst_iterator_next (iter, (gpointer *) & otherpad)) {
       case GST_ITERATOR_OK:
-        othermonitor = g_object_get_data ((GObject *) otherpad, "qa-monitor");
+        othermonitor =
+            g_object_get_data ((GObject *) otherpad, "validate-monitor");
         if (othermonitor) {
           SerializedEventData *data = g_slice_new0 (SerializedEventData);
           data->timestamp = last_ts;
@@ -1043,7 +1046,8 @@ gst_validate_pad_monitor_otherpad_add_pending_field (GstValidatePadMonitor *
   while (!done) {
     switch (gst_iterator_next (iter, (gpointer *) & otherpad)) {
       case GST_ITERATOR_OK:
-        othermonitor = g_object_get_data ((GObject *) otherpad, "qa-monitor");
+        othermonitor =
+            g_object_get_data ((GObject *) otherpad, "validate-monitor");
         if (othermonitor) {
           GST_VALIDATE_MONITOR_LOCK (othermonitor);
           g_assert (othermonitor->pending_setcaps_fields != NULL);
@@ -1083,7 +1087,8 @@ gst_validate_pad_monitor_otherpad_clear_pending_fields (GstValidatePadMonitor *
   while (!done) {
     switch (gst_iterator_next (iter, (gpointer *) & otherpad)) {
       case GST_ITERATOR_OK:
-        othermonitor = g_object_get_data ((GObject *) otherpad, "qa-monitor");
+        othermonitor =
+            g_object_get_data ((GObject *) otherpad, "validate-monitor");
         if (othermonitor) {
           GST_VALIDATE_MONITOR_LOCK (othermonitor);
           g_assert (othermonitor->pending_setcaps_fields != NULL);
@@ -1124,7 +1129,8 @@ gst_validate_pad_monitor_add_expected_newsegment (GstValidatePadMonitor *
   while (!done) {
     switch (gst_iterator_next (iter, (gpointer *) & otherpad)) {
       case GST_ITERATOR_OK:
-        othermonitor = g_object_get_data ((GObject *) otherpad, "qa-monitor");
+        othermonitor =
+            g_object_get_data ((GObject *) otherpad, "validate-monitor");
         GST_VALIDATE_MONITOR_LOCK (othermonitor);
         if (othermonitor->expected_segment) {
           GST_VALIDATE_REPORT (othermonitor, EVENT_NEWSEGMENT_NOT_PUSHED, "");
@@ -1428,7 +1434,7 @@ static GstFlowReturn
 gst_validate_pad_monitor_chain_func (GstPad * pad, GstBuffer * buffer)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   GstFlowReturn ret;
 
   GST_VALIDATE_PAD_MONITOR_PARENT_LOCK (pad_monitor);
@@ -1482,7 +1488,7 @@ static gboolean
 gst_validate_pad_monitor_sink_event_func (GstPad * pad, GstEvent * event)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret;
 
   GST_VALIDATE_PAD_MONITOR_PARENT_LOCK (pad_monitor);
@@ -1514,7 +1520,7 @@ static gboolean
 gst_validate_pad_monitor_src_event_func (GstPad * pad, GstEvent * event)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret;
 
   GST_VALIDATE_MONITOR_LOCK (pad_monitor);
@@ -1528,7 +1534,7 @@ static gboolean
 gst_validate_pad_monitor_query_func (GstPad * pad, GstQuery * query)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret;
 
   gst_validate_pad_monitor_query_overrides (pad_monitor, query);
@@ -1572,7 +1578,7 @@ static gboolean
 gst_validate_pad_monitor_activatepull_func (GstPad * pad, gboolean active)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret = TRUE;
 
   /* TODO add overrides for activate func */
@@ -1593,7 +1599,7 @@ gst_validate_pad_get_range_func (GstPad * pad, guint64 offset, guint size,
     GstBuffer ** buffer)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret;
   ret = pad_monitor->getrange_func (pad, offset, size, buffer);
   return ret;
@@ -1876,12 +1882,13 @@ gst_validate_pad_monitor_do_setup (GstValidateMonitor * monitor)
 
   pad = GST_VALIDATE_PAD_MONITOR_GET_PAD (pad_monitor);
 
-  if (g_object_get_data ((GObject *) pad, "qa-monitor")) {
-    GST_WARNING_OBJECT (pad_monitor, "Pad already has a qa-monitor associated");
+  if (g_object_get_data ((GObject *) pad, "validate-monitor")) {
+    GST_WARNING_OBJECT (pad_monitor,
+        "Pad already has a validate-monitor associated");
     return FALSE;
   }
 
-  g_object_set_data ((GObject *) pad, "qa-monitor", pad_monitor);
+  g_object_set_data ((GObject *) pad, "validate-monitor", pad_monitor);
 
   pad_monitor->pad = pad;
 
