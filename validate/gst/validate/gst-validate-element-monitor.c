@@ -128,9 +128,13 @@ gst_validate_element_monitor_inspect (GstValidateElementMonitor * monitor)
   element = GST_VALIDATE_ELEMENT_MONITOR_GET_ELEMENT (monitor);
   klass = GST_ELEMENT_CLASS (G_OBJECT_GET_CLASS (element));
 
-  monitor->is_decoder = strstr (klass->details.klass, "Decoder") != NULL;
-  monitor->is_encoder = strstr (klass->details.klass, "Encoder") != NULL;
-  monitor->is_demuxer = strstr (klass->details.klass, "Demuxer") != NULL;
+  if (klass->details.klass) {
+    monitor->is_decoder = strstr (klass->details.klass, "Decoder") != NULL;
+    monitor->is_encoder = strstr (klass->details.klass, "Encoder") != NULL;
+    monitor->is_demuxer = strstr (klass->details.klass, "Demuxer") != NULL;
+  } else {
+    GST_ERROR_OBJECT (element, "no klassname");
+  }
 }
 
 static gboolean
