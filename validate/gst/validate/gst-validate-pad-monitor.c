@@ -1777,19 +1777,41 @@ gst_validate_pad_monitor_getcaps_func (GstPad * pad)
   return ret;
 }
 
+static void
+gst_validate_pad_monitor_update_caps_info (GstValidatePadMonitor * pad_monitor,
+    GstCaps * caps)
+{
+  GstStructure *structure;
+
+  g_return_if_fail (gst_caps_is_fixed (caps));
+
+  pad_monitor->caps_is_audio = FALSE;
+  pad_monitor->caps_is_video = FALSE;
+
+  structure = gst_caps_get_structure (caps, 0);
+  if (g_str_has_prefix (gst_structure_get_name (structure), "audio/")) {
+    pad_monitor->caps_is_audio = TRUE;
+  } else if (g_str_has_prefix (gst_structure_get_name (structure), "video/")) {
+    pad_monitor->caps_is_video = TRUE;
+  }
+}
+
 static gboolean
 gst_validate_pad_monitor_setcaps_func (GstPad * pad, GstCaps * caps)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret = TRUE;
   GstStructure *structure;
 
   GST_VALIDATE_PAD_MONITOR_PARENT_LOCK (pad_monitor);
   GST_VALIDATE_MONITOR_LOCK (pad_monitor);
 
-  /* Check if caps are identical to last caps and complain if so */
-  if (pad_monitor->last_caps
+  /* Check if caps are identical to last caps and complain if so
+   * Only checked for sink pads as src pads might push the same caps
+   * multiple times during unlinked/autoplugging scenarios */
+  if (GST_PAD_IS_SINK (GST_VALIDATE_PAD_MONITOR_GET_PAD (pad_monitor)) &&
+      pad_monitor->last_caps
       && gst_caps_is_equal (caps, pad_monitor->last_caps)) {
     GST_VALIDATE_REPORT (pad_monitor, EVENT_CAPS_DUPLICATE, "%" GST_PTR_FORMAT,
         caps);
