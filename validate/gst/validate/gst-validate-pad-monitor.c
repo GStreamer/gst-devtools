@@ -922,10 +922,9 @@ gst_validate_pad_monitor_check_aggregated_return (GstValidatePadMonitor *
   GstValidatePadMonitor *othermonitor;
   GstFlowReturn aggregated = GST_FLOW_NOT_LINKED;
   gboolean found_a_pad = FALSE;
+  GstPad *pad = GST_VALIDATE_PAD_MONITOR_GET_PAD (monitor);
 
-  iter =
-      gst_pad_iterate_internal_links (GST_VALIDATE_PAD_MONITOR_GET_PAD
-      (monitor));
+  iter = gst_pad_iterate_internal_links (pad);
   done = FALSE;
   while (!done) {
     switch (gst_iterator_next (iter, (gpointer *) & otherpad)) {
@@ -965,6 +964,11 @@ gst_validate_pad_monitor_check_aggregated_return (GstValidatePadMonitor *
   }
   if (aggregated == GST_FLOW_OK || aggregated == GST_FLOW_UNEXPECTED) {
     /* those are acceptable situations */
+
+    if (GST_PAD_IS_FLUSHING (pad) && ret == GST_FLOW_WRONG_STATE) {
+      /* pad is flushing, always acceptable to return flushing */
+      return;
+    }
 
     if (monitor->is_eos && ret == GST_FLOW_UNEXPECTED) {
       /* this element received eos and returned eos */
@@ -1172,6 +1176,7 @@ gst_validate_pad_monitor_flush (GstValidatePadMonitor * pad_monitor)
   pad_monitor->timestamp_range_end = GST_CLOCK_TIME_NONE;
   pad_monitor->has_segment = FALSE;
   pad_monitor->is_eos = FALSE;
+  pad_monitor->last_flow_return = GST_FLOW_OK;
   gst_caps_replace (&pad_monitor->last_caps, NULL);
   pad_monitor->caps_is_audio = pad_monitor->caps_is_video = FALSE;
 
