@@ -1562,7 +1562,7 @@ gst_validate_pad_buffer_alloc_func (GstPad * pad, guint64 offset, guint size,
     GstCaps * caps, GstBuffer ** buffer)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret;
   ret = pad_monitor->bufferalloc_func (pad, offset, size, caps, buffer);
   return ret;
@@ -1572,7 +1572,7 @@ static gboolean
 gst_validate_pad_monitor_activatepush_func (GstPad * pad, gboolean active)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   gboolean ret = TRUE;
 
   /* TODO add overrides for activate func */
@@ -1773,7 +1773,7 @@ static GstCaps *
 gst_validate_pad_monitor_getcaps_func (GstPad * pad)
 {
   GstValidatePadMonitor *pad_monitor =
-      g_object_get_data ((GObject *) pad, "qa-monitor");
+      g_object_get_data ((GObject *) pad, "validate-monitor");
   GstCaps *ret = NULL;
 
   if (pad_monitor->getcaps_func) {
