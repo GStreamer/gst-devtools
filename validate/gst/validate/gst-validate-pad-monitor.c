@@ -53,6 +53,12 @@ G_DEFINE_TYPE (GstValidatePadMonitor, gst_validate_pad_monitor,
             GST_VALIDATE_MONITOR_GET_PARENT(m)) : \
         FALSE)
 
+#define PAD_PARENT_IS_MUXER(m) \
+    (GST_VALIDATE_MONITOR_GET_PARENT(m) ? \
+        GST_VALIDATE_ELEMENT_MONITOR_ELEMENT_IS_MUXER ( \
+            GST_VALIDATE_MONITOR_GET_PARENT(m)) : \
+        FALSE)
+
 #define PAD_PARENT_IS_DECODER(m) \
     (GST_VALIDATE_MONITOR_GET_PARENT(m) ? \
         GST_VALIDATE_ELEMENT_MONITOR_ELEMENT_IS_DECODER ( \
@@ -1302,7 +1308,8 @@ gst_validate_pad_monitor_downstream_event_check (GstValidatePadMonitor *
           gboolean exp_update;
           GstFormat exp_format;
 
-          if (expected_segment != event) {
+          /* This test is disabled for muxers */
+          if (!PAD_PARENT_IS_MUXER (pad_monitor) && expected_segment != event) {
             gst_event_parse_new_segment_full (expected_segment,
                 &exp_update, &exp_rate,
                 &exp_applied_rate, &exp_format, &exp_start, &exp_stop,

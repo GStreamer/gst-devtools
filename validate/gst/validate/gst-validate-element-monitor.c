@@ -132,6 +132,7 @@ gst_validate_element_monitor_inspect (GstValidateElementMonitor * monitor)
     monitor->is_decoder = strstr (klass->details.klass, "Decoder") != NULL;
     monitor->is_encoder = strstr (klass->details.klass, "Encoder") != NULL;
     monitor->is_demuxer = strstr (klass->details.klass, "Demuxer") != NULL;
+    monitor->is_muxer = strstr (klass->details.klass, "Muxer") != NULL;
   } else {
     GST_ERROR_OBJECT (element, "no klassname");
   }
