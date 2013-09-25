@@ -569,7 +569,8 @@ gst_validate_pad_monitor_dispose (GObject * object)
   }
 
   if (monitor->expected_segment)
-    gst_event_unref (monitor->expected_segment);
+    g_list_free_full (monitor->expected_segment,
+        (GDestroyNotify) gst_event_unref);
 
   gst_structure_free (monitor->pending_setcaps_fields);
   g_ptr_array_unref (monitor->serialized_events);
@@ -1154,7 +1155,9 @@ gst_validate_pad_monitor_add_expected_newsegment (GstValidatePadMonitor *
         othermonitor =
             g_object_get_data ((GObject *) otherpad, "validate-monitor");
         GST_VALIDATE_MONITOR_LOCK (othermonitor);
-        gst_event_replace (&othermonitor->expected_segment, event);
+        othermonitor->expected_segment =
+            g_list_append (othermonitor->expected_segment,
+            gst_event_ref (event));
         GST_VALIDATE_MONITOR_UNLOCK (othermonitor);
         gst_object_unref (otherpad);
         break;
@@ -1293,13 +1296,14 @@ gst_validate_pad_monitor_downstream_event_check (GstValidatePadMonitor *
       } else {
         /* check if this segment is the expected one */
         if (pad_monitor->expected_segment) {
+          GstEvent *expected_segment = pad_monitor->expected_segment->data;
           gint64 exp_start, exp_stop, exp_position;
           gdouble exp_rate, exp_applied_rate;
           gboolean exp_update;
           GstFormat exp_format;
 
-          if (pad_monitor->expected_segment != event) {
-            gst_event_parse_new_segment_full (pad_monitor->expected_segment,
+          if (expected_segment != event) {
+            gst_event_parse_new_segment_full (expected_segment,
                 &exp_update, &exp_rate,
                 &exp_applied_rate, &exp_format, &exp_start, &exp_stop,
                 &exp_position);
@@ -1310,11 +1314,23 @@ gst_validate_pad_monitor_downstream_event_check (GstValidatePadMonitor *
                   || exp_position != position) {
                 GST_VALIDATE_REPORT (pad_monitor,
                     EVENT_NEW_SEGMENT_MISMATCH,
-                    "Expected segment didn't match received segment event");
+                    "Expected segment didn't match received segment event: update %d %d, "
+                    "exp * exp_applied_rate %f %f, rate * applied_rate %f %f, "
+                    "start %" GST_TIME_FORMAT " %" GST_TIME_FORMAT ", "
+                    "stop %" GST_TIME_FORMAT " %" GST_TIME_FORMAT ", "
+                    "position %" GST_TIME_FORMAT " %" GST_TIME_FORMAT ", ",
+                    update, exp_update, exp_rate, exp_applied_rate, rate,
+                    applied_rate, GST_TIME_ARGS (exp_start),
+                    GST_TIME_ARGS (start), GST_TIME_ARGS (exp_stop),
+                    GST_TIME_ARGS (stop), GST_TIME_ARGS (exp_position),
+                    GST_TIME_ARGS (position));
               }
             }
           }
-          gst_event_replace (&pad_monitor->expected_segment, NULL);
+          gst_event_unref (expected_segment);
+          pad_monitor->expected_segment =
+              g_list_remove_link (pad_monitor->expected_segment,
+              pad_monitor->expected_segment);
         }
       }
       break;
