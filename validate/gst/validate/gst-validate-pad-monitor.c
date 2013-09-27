@@ -1210,6 +1210,17 @@ gst_validate_pad_monitor_flush (GstValidatePadMonitor * pad_monitor)
         pad_monitor->serialized_events->len);
 }
 
+/* We don't enforce flush start/stop pairs on elements with
+   a non easy number of pads */
+static gboolean
+check_flush_pairs (GstValidatePadMonitor * pad_monitor)
+{
+  GstElement *element;
+
+  element = gst_validate_pad_monitor_get_element (GST_VALIDATE_MONITOR (pad_monitor));
+  return element->numsrcpads == element->numsinkpads;
+}
+
 /* common checks for both sink and src event functions */
 static void
 gst_validate_pad_monitor_common_event_check (GstValidatePadMonitor *
@@ -1231,7 +1242,7 @@ gst_validate_pad_monitor_common_event_check (GstValidatePadMonitor *
         }
       }
 
-      if (pad_monitor->pending_flush_stop) {
+      if (pad_monitor->pending_flush_stop && check_flush_pairs (pad_monitor)) {
         GST_VALIDATE_REPORT (pad_monitor,
             EVENT_FLUSH_START_UNEXPECTED,
             "Received flush-start from %" GST_PTR_FORMAT
